@@ -1,0 +1,66 @@
+# Noteboard
+
+A lightweight, self-contained sticky-note board for administrators. It is a Vue 3 frontend with local demo persistence, category ordering, image attachments, and a component boundary that can be connected to any backend.
+
+<p align="center">
+  <a href="./public/noteboard-demo.mp4"><img src="./public/noteboard-preview.png" alt="Noteboard category-based sticky note board" width="900" /></a>
+</p>
+
+Demo video: [noteboard-demo.mp4](./public/noteboard-demo.mp4)
+
+## Included
+
+- Administrator note creation, editing, and deletion.
+- Category groups, masonry layout, and collapse state.
+- Persistent category ordering with native drag and keyboard-accessible move controls.
+- An `Uncategorized` group that always remains last.
+- Six note colors, local image uploads or paste, and an image lightbox.
+- LocalStorage-backed demo data, with no accounts, API keys, product branding, or service dependencies.
+- Responsive layout and reduced-motion support.
+
+## Run locally
+
+```sh
+pnpm install
+pnpm dev
+```
+
+Validate a change:
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+## Reuse in another project
+
+`src/components/NoteBoard.vue` is deliberately independent of routing, authentication, stores, and HTTP clients. Supply `notes` and `categoryOrder`, then persist its emitted events in the host application.
+
+```vue
+<NoteBoard
+  :notes="notes"
+  :category-order="categoryOrder"
+  @create="createNote"
+  @update="updateNote"
+  @delete="deleteNote"
+  @order="saveCategoryOrder"
+/>
+```
+
+The contracts are exported from `src/types.ts`. A host owns authorization and storage. Category order is an array of category names; it excludes `Uncategorized`, which the board reserves as the last group. When the host receives an order update it should validate that every existing non-reserved category occurs exactly once before saving it.
+
+The bundled demo intentionally persists images as data URLs, so it limits each image to 1 MB and four images per note. A production integration should replace this with its own upload flow and store image URLs in `NoteImage`.
+
+## Project layout
+
+```text
+src/components/   Reusable board, editor, note card, ordering dialog
+src/lib/          Deterministic grouping/order rules and local demo storage
+src/types.ts      Public note and board types
+public/           README preview and demonstration video
+```
+
+## License
+
+[MIT](./LICENSE)
