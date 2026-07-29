@@ -9,24 +9,33 @@ button,input,textarea,select { font:inherit; } button { cursor:pointer; } button
 /* The note wall is a measured grid rather than CSS columns. This keeps every
    card and its shadow in one track, and gives the collection state stable
    geometry for the FLIP transition. */
-.note-group-content { position:relative; display:grid; grid-template-rows:1fr; min-width:0; overflow:visible; transition:height 520ms cubic-bezier(.2,.8,.2,1); }
+.note-group-content { position:relative; display:grid; grid-template-rows:1fr; min-width:0; overflow:visible; transition:height 620ms cubic-bezier(.2,.8,.2,1); }
 .note-group-inner { min-height:0; margin:-8px; padding:8px; overflow:visible; }
 .note-wall { position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense; grid-auto-rows:4px; column-gap:24px; row-gap:16px; align-items:start; padding:8px; }
 .note-motion-card { position:relative; min-width:0; transform-origin:top left; will-change:transform,opacity; animation:note-wall-arrive .58s cubic-bezier(.2,.8,.2,1) both; animation-delay:var(--delay,0ms); }
-.note-card { margin:0; break-inside:initial; }
+.note-card { margin:0; break-inside:initial; transform:translate(var(--note-x,0px),var(--note-y,0px)) rotate(var(--tilt,-.55deg)); }
+.note-card:hover { transform:translate(var(--note-x,0px),calc(var(--note-y,0px) - 9px)) rotate(0) scale(1.025); }
+.tape { transform:translateX(-50%) rotate(var(--tape-tilt,-2deg)); }
 .collection-pin { position:absolute; z-index:110; top:13px; left:13px; width:21px; height:21px; border:1px solid rgba(101,17,17,.36); border-radius:50%; opacity:0; background:radial-gradient(circle at 32% 28%,#ffd8d4 0 11%,#f15850 27%,#c9212b 68%,#7e121b 100%); box-shadow:0 2px 2px rgba(51,26,26,.34),inset -2px -2px 3px rgba(104,10,18,.36); transform:translateY(-90px) rotate(-16deg); }
 .collection-pin::after { content:""; position:absolute; top:17px; left:8px; width:4px; height:12px; border-radius:0 0 3px 3px; background:#78222a; transform:rotate(12deg); transform-origin:top; }
-.note-group.is-collapsed .note-group-content,.note-group.is-collapsing .note-group-content { display:block; height:var(--stack-height,0px); min-height:0; overflow:visible; cursor:pointer; }
+.note-group.is-collapsed .note-group-content,.note-group.is-collapsing .note-group-content { display:block; height:var(--stack-height,0px); min-height:0; overflow:visible; }
+.note-group.is-collapsed .note-group-content { cursor:pointer; }
 .note-group.is-collapsed .note-group-inner,.note-group.is-collapsing .note-group-inner { width:100%; height:100%; margin:0; padding:0; overflow:visible; }
 .note-group.is-collapsed .note-wall,.note-group.is-collapsing .note-wall { display:block; width:100%; height:100%; }
 .note-group.is-collapsed .note-motion-card,.note-group.is-collapsing .note-motion-card { position:absolute; top:0; left:0; z-index:var(--stack-z); width:var(--stack-card-width,min(100%,340px)); margin:0; pointer-events:none; animation:none; transform:translate(var(--stack-x),var(--stack-y)) rotate(var(--stack-tilt)); }
-.note-group.is-collapsed .collection-pin { animation:collection-pin-drop 520ms cubic-bezier(.16,.88,.22,1) both; }
+.note-group.is-collapsing .collection-pin { animation:collection-pin-drop 520ms cubic-bezier(.16,.88,.22,1) both; }
+.note-group.is-collapsed .collection-pin { opacity:1; transform:translateY(0) rotate(0) scale(1); }
 .note-group.is-expanding .collection-pin { animation:collection-pin-lift 380ms cubic-bezier(.5,0,.8,.2) both; }
-.note-group.is-collapsed .note-motion-card { animation:collection-stack-settle 420ms cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--stack-z) * 35ms); }
 @keyframes note-wall-arrive { from { opacity:0; transform:translateY(30px) rotate(-1.4deg); } to { opacity:1; transform:translateY(0) rotate(0); } }
 @keyframes collection-pin-drop { 0% { opacity:0; transform:translate(-22px,-96px) rotate(-28deg) scale(.78); } 64% { opacity:1; transform:translate(2px,6px) rotate(4deg) scale(1.08); } 100% { opacity:1; transform:translateY(0) rotate(0) scale(1); } }
 @keyframes collection-pin-lift { from { opacity:1; transform:translateY(0) rotate(0) scale(1); } to { opacity:0; transform:translate(-26px,-84px) rotate(-23deg) scale(.8); } }
-@keyframes collection-stack-settle { 0% { transform:translate(var(--stack-x),calc(var(--stack-y) - 18px)) rotate(calc(var(--stack-tilt) - 3deg)) scale(.96); filter:brightness(1.08); } 70% { transform:translate(var(--stack-x),calc(var(--stack-y) + 3px)) rotate(calc(var(--stack-tilt) + .7deg)) scale(1.01); } 100% { transform:translate(var(--stack-x),var(--stack-y)) rotate(var(--stack-tilt)); filter:none; } }
+/* The editor is a sheet of paper, so it moves in and out as a sheet rather
+   than appearing as an abrupt full-screen modal. */
+.note-editor-enter-active,.note-editor-leave-active { transition:opacity .24s ease; }
+.note-editor-enter-active .composer,.note-editor-leave-active .composer { transition:opacity .28s ease,transform .34s cubic-bezier(.18,.86,.24,1); }
+.note-editor-enter-from,.note-editor-leave-to { opacity:0; }
+.note-editor-enter-from .composer { opacity:0; transform:translate(12vw,10vh) scale(.84) rotate(3deg); }
+.note-editor-leave-to .composer { opacity:0; transform:translateY(16px) scale(.97) rotate(-1deg); }
 @media (max-width:1260px) { .note-wall { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media (max-width:940px) { .note-wall { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:760px) { .note-wall { grid-template-columns:1fr; grid-auto-flow:row; grid-auto-rows:auto; gap:18px; padding:6px; }.note-motion-card { grid-row-end:auto !important; } }

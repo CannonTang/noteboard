@@ -24,7 +24,7 @@
         <header class="group-header"><button class="group-toggle" type="button" :aria-expanded="!isCollapsed(group.category)" @click="toggleGroup(group.category)"><ChevronDown :size="18" /><span>{{ group.category }}</span><b>{{ group.notes.length }}</b></button></header>
         <div class="note-group-content" :role="isCollapsed(group.category) ? 'button' : undefined" :tabindex="isCollapsed(group.category) ? 0 : -1" :aria-label="isCollapsed(group.category) ? `Expand ${group.category}` : undefined" @click="isCollapsed(group.category) && toggleGroup(group.category)" @keydown.enter.prevent="isCollapsed(group.category) && toggleGroup(group.category)" @keydown.space.prevent="isCollapsed(group.category) && toggleGroup(group.category)">
           <span class="collection-pin" aria-hidden="true"></span>
-          <div class="note-group-inner"><div class="note-wall"><div v-for="(note, index) in group.notes" :key="note.id" class="note-motion-card" :style="noteMotionStyle(index)"><NoteCard :note="note" @edit="openEdit" @delete="requestDelete" @preview="preview" @layout="scheduleLayout" /></div></div></div>
+          <div class="note-group-inner"><div class="note-wall"><div v-for="(note, index) in group.notes" :key="note.id" class="note-motion-card" :style="noteMotionStyle(note.id, index)"><NoteCard :note="note" @edit="openEdit" @delete="requestDelete" @preview="preview" @layout="scheduleLayout" /></div></div></div>
         </div>
       </section>
     </div>
@@ -69,7 +69,22 @@ function setGroupElement(category: string, element: Element | ComponentPublicIns
   if (root instanceof HTMLElement) groupElements.set(category, root)
   else groupElements.delete(category)
 }
-function noteMotionStyle(index: number) { return { '--stack-x': `${(index % 4) * 9}px`, '--stack-y': `${index * 16}px`, '--stack-tilt': `${[-1.7, 1.2, -0.8, 1.5][index % 4]}deg`, '--stack-z': String(index + 1), '--delay': `${Math.min(index, 10) * 55}ms` } }
+function noteMotionStyle(id: string, index: number) {
+  let hash = 2166136261
+  for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619)
+  const pick = (shift: number, range: number) => ((hash >>> shift) % range)
+  return {
+    '--stack-x': `${(index % 4) * 9}px`,
+    '--stack-y': `${index * 16}px`,
+    '--stack-tilt': `${[-1.7, 1.2, -0.8, 1.5][index % 4]}deg`,
+    '--stack-z': String(index + 1),
+    '--delay': `${Math.min(index, 10) * 55}ms`,
+    '--tilt': `${(pick(0, 29) - 14) / 10}deg`,
+    '--note-x': `${pick(5, 7) - 3}px`,
+    '--note-y': `${pick(9, 5) - 2}px`,
+    '--tape-tilt': `${(pick(12, 13) - 6) / 2}deg`,
+  }
+}
 function nextFrame() { return new Promise<void>(resolve => requestAnimationFrame(() => resolve())) }
 function cardsIn(root: HTMLElement) { return [...root.querySelectorAll<HTMLElement>('.note-motion-card')] }
 function cardRects(cards: HTMLElement[]) { return cards.map(card => card.getBoundingClientRect()) }
@@ -95,6 +110,8 @@ function syncStackMetrics(root: HTMLElement) {
   root.style.setProperty('--stack-card-width', `${Math.ceil(Math.max(...cards.map(card => card.offsetWidth)))}px`)
   root.style.setProperty('--stack-height', `${Math.ceil(Math.max(...cards.map(card => card.offsetHeight)) + Math.max(0, cards.length - 1) * 16 + 24)}px`)
 }
+function contentIn(root: HTMLElement) { return root.querySelector<HTMLElement>('.note-group-content') }
+function stackHeight(root: HTMLElement) { return Number.parseFloat(root.style.getPropertyValue('--stack-height')) || 0 }
 function scheduleLayout(root: Document | HTMLElement = document) {
   cancelAnimationFrame(layoutFrame)
   layoutFrame = requestAnimationFrame(() => { layoutFrame = requestAnimationFrame(() => { layoutWalls(root); if (root instanceof HTMLElement && root.matches('.note-group')) syncStackMetrics(root); else root.querySelectorAll<HTMLElement>('.note-group').forEach(syncStackMetrics) }) })
@@ -121,20 +138,28 @@ async function toggleGroup(category: string) {
       layoutWalls(root)
       syncStackMetrics(root)
       const from = cardRects(cards)
+      const content = contentIn(root)
+      if (content) content.style.height = `${content.getBoundingClientRect().height}px`
       replaceSet(collapsing, category, true)
       await nextTick(); await nextFrame()
+      if (content) content.style.height = `${stackHeight(root)}px`
       await animateCards(cards, from, cardRects(cards), true)
       setCollapsed(category, true)
       replaceSet(collapsing, category, false)
+      if (content) content.style.removeProperty('height')
     } else {
       const from = cardRects(cards)
+      const content = contentIn(root)
+      if (content) content.style.height = `${content.getBoundingClientRect().height}px`
       replaceSet(expanding, category, true)
       setCollapsed(category, false)
       await nextTick(); await nextFrame()
       layoutWalls(root)
+      if (content) content.style.height = `${content.scrollHeight}px`
       await nextFrame()
       await animateCards(cards, from, cardRects(cards), false)
       replaceSet(expanding, category, false)
+      if (content) content.style.removeProperty('height')
     }
   } finally {
     resetCardMotion(cards)

@@ -1,5 +1,6 @@
 <template>
   <Teleport to="body">
+    <Transition name="note-editor">
     <div v-if="open" class="modal-backdrop" @click.self="close">
       <form class="composer" :class="`note-${draft.color}`" @submit.prevent="submit">
         <header class="composer-header">
@@ -30,6 +31,7 @@
         <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       </form>
     </div>
+    </Transition>
   </Teleport>
 </template>
 
