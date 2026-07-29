@@ -153,10 +153,13 @@ async function toggleGroup(category: string) {
       if (content) content.style.height = `${content.getBoundingClientRect().height}px`
       replaceSet(expanding, category, true)
       setCollapsed(category, false)
-      await nextTick(); await nextFrame()
+      await nextTick()
       layoutWalls(root)
       if (content) content.style.height = `${content.scrollHeight}px`
-      await nextFrame()
+      // Measuring target rects now forces the new grid layout without giving
+      // the browser a paint where cards are already expanded. The inverse
+      // animation is attached in this same frame, so the stack unfolds
+      // continuously instead of flashing to its final positions.
       await animateCards(cards, from, cardRects(cards), false)
       replaceSet(expanding, category, false)
       if (content) content.style.removeProperty('height')
