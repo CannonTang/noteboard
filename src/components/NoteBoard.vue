@@ -115,6 +115,23 @@ function syncStackMetrics(root: HTMLElement) {
 }
 function contentIn(root: HTMLElement) { return root.querySelector<HTMLElement>('.note-group-content') }
 function stackHeight(root: HTMLElement) { return Number.parseFloat(root.style.getPropertyValue('--stack-height')) || 0 }
+function waitForHeightTransition(content: HTMLElement, duration: number) {
+  return new Promise<void>(resolve => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(fallback)
+      content.removeEventListener('transitionend', onTransitionEnd)
+      resolve()
+    }
+    const onTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === content && event.propertyName === 'height') finish()
+    }
+    const fallback = window.setTimeout(finish, duration + 120)
+    content.addEventListener('transitionend', onTransitionEnd)
+  })
+}
 function scheduleLayout(root: Document | HTMLElement = document) {
   cancelAnimationFrame(layoutFrame)
   layoutFrame = requestAnimationFrame(() => { layoutFrame = requestAnimationFrame(() => { layoutWalls(root); if (root instanceof HTMLElement && root.matches('.note-group')) syncStackMetrics(root); else root.querySelectorAll<HTMLElement>('.note-group').forEach(syncStackMetrics) }) })
@@ -143,28 +160,44 @@ async function toggleGroup(category: string) {
       syncStackMetrics(root)
       const from = cardRects(cards)
       const content = contentIn(root)
+      let heightDone = Promise.resolve()
       if (content) content.style.height = `${content.getBoundingClientRect().height}px`
       replaceSet(collapsing, category, true)
       await nextTick(); await nextFrame()
-      if (content) content.style.height = `${stackHeight(root)}px`
-      await animateCards(cards, from, cardRects(cards), true)
+      if (content) {
+        heightDone = waitForHeightTransition(content, collectionDuration(cards))
+        content.style.height = `${stackHeight(root)}px`
+      }
+      await Promise.all([animateCards(cards, from, cardRects(cards), true), heightDone])
       setCollapsed(category, true)
       replaceSet(collapsing, category, false)
       if (content) content.style.removeProperty('height')
     } else {
       const from = cardRects(cards)
       const content = contentIn(root)
-      if (content) content.style.height = `${content.getBoundingClientRect().height}px`
+      let heightDone = Promise.resolve()
+      const collapsedHeight = content?.getBoundingClientRect().height ?? 0
+      if (content) content.style.height = `${collapsedHeight}px`
       replaceSet(expanding, category, true)
       setCollapsed(category, false)
       await nextTick()
       layoutWalls(root)
-      if (content) content.style.height = `${content.scrollHeight}px`
+      if (content) {
+        // scrollHeight includes overflow from the negative-margin inner
+        // surface. Measure the real auto-height box instead; otherwise the
+        // last cleanup frame moves every card by that difference.
+        content.style.removeProperty('height')
+        const expandedHeight = content.getBoundingClientRect().height
+        content.style.height = `${collapsedHeight}px`
+        void content.offsetHeight
+        heightDone = waitForHeightTransition(content, collectionDuration(cards))
+        content.style.height = `${expandedHeight}px`
+      }
       // Measuring target rects now forces the new grid layout without giving
       // the browser a paint where cards are already expanded. The inverse
       // animation is attached in this same frame, so the stack unfolds
       // continuously instead of flashing to its final positions.
-      await animateCards(cards, from, cardRects(cards), false)
+      await Promise.all([animateCards(cards, from, cardRects(cards), false), heightDone])
       replaceSet(expanding, category, false)
       if (content) content.style.removeProperty('height')
     }

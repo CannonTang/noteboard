@@ -18,6 +18,12 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals())
 
+function finishHeightTransition(element: Element) {
+  const event = new Event('transitionend')
+  Object.defineProperty(event, 'propertyName', { value: 'height' })
+  element.dispatchEvent(event)
+}
+
 describe('NoteBoard collection state', () => {
   it('keeps cards mounted while changing from a wall to a stacked collection and back', async () => {
     const wrapper = mount(NoteBoard, { props: { notes, categoryOrder: ['Planning'] } })
@@ -25,10 +31,14 @@ describe('NoteBoard collection state', () => {
 
     await group.find('.group-toggle').trigger('click')
     await new Promise(resolve => setTimeout(resolve, 0))
+    finishHeightTransition(group.find('.note-group-content').element)
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(group.classes()).toContain('is-collapsed')
     expect(group.findAll('.note-motion-card')).toHaveLength(2)
 
     await group.find('.note-group-content').trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    finishHeightTransition(group.find('.note-group-content').element)
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(group.classes()).not.toContain('is-collapsed')
     expect(group.findAll('.note-motion-card')).toHaveLength(2)
