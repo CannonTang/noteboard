@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": [
+    "src/index.ts",
+    "src/types.ts",
+    "src/components/**/*.vue",
+    "src/composables/**/*.ts",
+    "src/lib/board.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/App.vue",
+    "src/main.ts",
+    "src/lib/storage.ts"
+  ],
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./dist/types",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.lib.tsbuildinfo"
+  }
+}

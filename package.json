@@ -1,27 +1,49 @@
 {
-  "name": "noteboard",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@cannontang/noteboard",
+  "version": "0.2.0",
+  "private": false,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "pnpm build:demo && pnpm build:lib",
+    "build:demo": "vue-tsc -b && vite build",
+    "build:lib": "rm -rf dist && vue-tsc -p tsconfig.lib.json && vite build --mode library",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
-  "dependencies": {
-    "lucide-vue-next": "^0.468.0",
-    "vue": "^3.5.13"
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/noteboard.js"
+    },
+    "./style.css": "./dist/style.css"
   },
+  "peerDependencies": {
+    "@lucide/vue": "^1.27.0",
+    "vue": "^3.5.0"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "devDependencies": {
+    "@lucide/vue": "^1.27.0",
+    "@playwright/test": "^1.62.0",
     "@types/node": "^22.10.5",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",
     "jsdom": "^25.0.1",
+    "prettier": "^3.9.6",
     "typescript": "~5.7.2",
     "vite": "^5.4.14",
     "vitest": "^2.1.8",
+    "vue": "^3.5.13",
     "vue-tsc": "^2.2.0"
   }
 }
