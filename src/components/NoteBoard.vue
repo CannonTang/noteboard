@@ -58,6 +58,8 @@ const confirming = ref<Note | null>(null)
 const lightbox = ref<{ src: string; name: string } | null>(null)
 const groupElements = new Map<string, HTMLElement>()
 let layoutFrame = 0
+const collectionMotionDuration = 520
+const collectionMotionStagger = 68
 const categories = computed(() => normalizeCategoryOrder(props.categoryOrder, props.notes))
 const groups = computed(() => groupNotes(props.notes, categories.value, sortMode.value))
 function isCollapsed(category: string) { return collapsed.value.has(category) }
@@ -88,6 +90,7 @@ function noteMotionStyle(id: string, index: number) {
 function nextFrame() { return new Promise<void>(resolve => requestAnimationFrame(() => resolve())) }
 function cardsIn(root: HTMLElement) { return [...root.querySelectorAll<HTMLElement>('.note-motion-card')] }
 function cardRects(cards: HTMLElement[]) { return cards.map(card => card.getBoundingClientRect()) }
+function collectionDuration(cards: HTMLElement[]) { return collectionMotionDuration + Math.max(0, cards.length - 1) * collectionMotionStagger }
 function layoutWalls(root: Document | HTMLElement = document) {
   const compact = window.matchMedia('(max-width: 760px)').matches
   root.querySelectorAll<HTMLElement>('.note-wall').forEach(wall => {
@@ -123,7 +126,7 @@ async function animateCards(cards: HTMLElement[], from: DOMRect[], to: DOMRect[]
     const target = base === 'none' ? 'none' : base
     const start = `translate(${from[index].left - to[index].left}px, ${from[index].top - to[index].top}px)${target === 'none' ? '' : ` ${target}`}`
     card.style.zIndex = String(100 + index)
-    return card.animate([{ transform: start, opacity: 1 }, { transform: target, opacity: 1 }], { duration: 520, delay: (towardStack ? index : cards.length - 1 - index) * 68, easing: 'cubic-bezier(.18,.82,.2,1)', fill: 'both' }).finished.catch(() => undefined)
+    return card.animate([{ transform: start, opacity: 1 }, { transform: target, opacity: 1 }], { duration: collectionMotionDuration, delay: (towardStack ? index : cards.length - 1 - index) * collectionMotionStagger, easing: 'cubic-bezier(.18,.82,.2,1)', fill: 'both' }).finished.catch(() => undefined)
   }))
 }
 function resetCardMotion(cards: HTMLElement[]) { cards.forEach(card => { card.getAnimations().forEach(animation => animation.cancel()); card.style.removeProperty('z-index') }) }
@@ -133,6 +136,7 @@ async function toggleGroup(category: string) {
   if (!root) { setCollapsed(category, !isCollapsed(category)); return }
   const shouldCollapse = !isCollapsed(category)
   const cards = cardsIn(root)
+  root.style.setProperty('--collection-duration', `${collectionDuration(cards)}ms`)
   try {
     if (shouldCollapse) {
       layoutWalls(root)
@@ -168,7 +172,10 @@ async function toggleGroup(category: string) {
     resetCardMotion(cards)
     replaceSet(collapsing, category, false)
     replaceSet(expanding, category, false)
-    scheduleLayout(root)
+    // The target grid was measured before the animation began. Re-running
+    // masonry here would briefly clear/reassign row spans and produce a
+    // second visible jump after an otherwise complete expansion.
+    root.style.removeProperty('--collection-duration')
   }
 }
 function openCreate() { editing.value = null; composerOpen.value = true }

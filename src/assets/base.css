@@ -9,7 +9,7 @@ button,input,textarea,select { font:inherit; } button { cursor:pointer; } button
 /* The note wall is a measured grid rather than CSS columns. This keeps every
    card and its shadow in one track, and gives the collection state stable
    geometry for the FLIP transition. */
-.note-group-content { position:relative; display:grid; grid-template-rows:1fr; min-width:0; overflow:visible; transition:height 620ms cubic-bezier(.2,.8,.2,1); }
+.note-group-content { position:relative; display:grid; grid-template-rows:1fr; min-width:0; overflow:visible; transition:height var(--collection-duration,620ms) cubic-bezier(.2,.8,.2,1); }
 .note-group-inner { min-height:0; margin:-8px; padding:8px; overflow:visible; }
 .note-wall { position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense; grid-auto-rows:4px; column-gap:24px; row-gap:16px; align-items:start; padding:8px; }
 .note-motion-card { position:relative; min-width:0; transform-origin:top left; will-change:transform,opacity; animation:note-wall-arrive .58s cubic-bezier(.2,.8,.2,1) both; animation-delay:var(--delay,0ms); }
